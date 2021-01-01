@@ -50,12 +50,12 @@ jobs:
       - run:
           name: Deploy to AWS S3
           command: |
-            if [ "${CURRENT_BRANCH} == 'master" ] 
-              aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_PRODUCTION_BUCKET} --delete
-            elif [ "${CURRENT_BRANCH} == 'staging" ] 
-              aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_STAGING_BUCKET} --delete
-            else [ "${CURRENT_BRANCH} == 'dev" ] 
-              aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_DEV_BUCKET} --delete
+            if [ "${CURRENT_BRANCH}" == "master" ] 
+            then aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_PRODUCTION_BUCKET} --delete
+            elif [ "${CURRENT_BRANCH}" == "staging" ] 
+            then aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_STAGING_BUCKET} --delete
+            else [ "${CURRENT_BRANCH}" == "dev" ] 
+            then aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_DEV_BUCKET} --delete
             fi
       
   deploy-to-aws-cloudfront:
@@ -86,12 +86,12 @@ jobs:
           name: Deploy to AWS Cloudfront
           command: |
             aws configure set preview.cloudfront
-            if [ "${CURRENT_BRANCH} == 'master" ] 
-              aws cloudfront create-invalidation --distribution-id ${PRODUCTION_DISTRIBUTION_ID} --paths /\*
-            elif [ "${CURRENT_BRANCH} == 'staging" ] 
-              aws cloudfront create-invalidation --distribution-id ${STAGING_DISTRIBUTION_ID} --paths /\*
-            else [ "${CURRENT_BRANCH} == 'dev" ] 
-              aws cloudfront create-invalidation --distribution-id ${DEV_DISTRIBUTION_ID} --paths /\*
+            if [ "${CURRENT_BRANCH}" == "master" ] 
+            then aws cloudfront create-invalidation --distribution-id ${PRODUCTION_DISTRIBUTION_ID} --paths /\*
+            elif [ "${CURRENT_BRANCH}" == "staging" ] 
+            then aws cloudfront create-invalidation --distribution-id ${STAGING_DISTRIBUTION_ID} --paths /\*
+            else [ "${CURRENT_BRANCH}" == "dev" ] 
+            then aws cloudfront create-invalidation --distribution-id ${DEV_DISTRIBUTION_ID} --paths /\*
             fi
 
 workflows:
