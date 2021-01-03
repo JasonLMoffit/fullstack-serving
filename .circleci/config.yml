@@ -4,7 +4,6 @@ executors:
     docker:
     - image: circleci/node:12.16.3
     working_directory: ~/repo
-
 aliases:
   - &show-current-branch
     run:
@@ -18,7 +17,7 @@ aliases:
   - &install-dependencies
     run:
       name: Install dependencies
-      command: npm install
+      command: rm -rf node_modules && rm ./package-lock.json && npm install
   - &save-cache
     save_cache:
       paths:
@@ -42,7 +41,6 @@ aliases:
         cd build
         zip ../build.zip -r * .[^]*
         echo "Build Successful"
-
 jobs:
   build:
     executor: app-executor
@@ -52,7 +50,6 @@ jobs:
       - *restore-cache
       - *install-dependencies
       - *save-cache
-
   linting:
     executor: app-executor
     steps:
@@ -62,7 +59,6 @@ jobs:
       - run:
           name: Run linting
           command: npm run lint
-
   prettier:
     executor: app-executor
     steps:
@@ -72,7 +68,6 @@ jobs:
       - run:
           name: Run prettier check
           command: npm run prettier:check
-
   deploy-to-aws-s3:
     executor: app-executor
     steps:
@@ -113,14 +108,31 @@ jobs:
             else
               aws cloudfront create-invalidation --distribution-id ${DEV_DISTRIBUTION_ID} --paths /\*
             fi
-
 workflows:
   build_and_deploy:
     jobs:
       - build
-      - deploy-to-aws-s3:
+      - linting:
           requires:
             - build
+          filters:
+            branches:
+              only:
+                - develop
+                - staging
+                - master
+      - prettier:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - develop
+                - staging
+                - master
+      - deploy-to-aws-s3:
+          requires:
+            - prettier
           filters:
             branches:
               only:
