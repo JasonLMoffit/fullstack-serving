@@ -1,45 +1,40 @@
 version: 2.1
-
-jobs:
-  build:
+executors:
+  app-executor:
     docker:
       - image: circleci/node:12.16.3
     working_directory: ~/repo
-    steps:
-      - checkout
-      - run:
-          name: Show current branch
-          command: echo ${CIRCLE_BRANCH}
-      - restore_cache:
-          key:
-            app-{{ checksum "package.json" }}
-            app-
-      - run:
-          name: Install dependencies
-          command: npm install
-      - save_cache:
-          paths:
-            - node_modules
-          key:
-            app-{{ checksum "package.json" }}
 
-  deploy-to-aws-s3:
-    docker:
-      - image: circleci/node:12.16.3
-    working_directory: ~/repo
-    steps:
-      - checkout
-      - run:
-          name: Show current branch
-          command: echo ${CIRCLE_BRANCH}
-      - run:
-          name: Installind AWS CLI
+aliases:
+  - &show-current-branch
+    run:
+      name: Show current branch
+      command: echo ${CIRCLE_BRANCH}
+  - &restore-cache
+    restore_cache:
+      key:
+        app-{{ checksum "package.json" }}
+        app-
+  - &install-dependencies
+    run:
+      name: Install dependencies
+      command: npm install
+  - &save-cache
+    save_cache:
+      paths:
+        - node_modules
+      key:
+        app-{{ checksum "package.json" }}
+  - &install-aws-cli
+    run:
+          name: Installing AWS CLI
           working_directory: ~/repo
           command: |
             sudo apt-get -y -qq update
             sudo apt-get install -y awscli
             sudo apt-get install -y python-pip python-dev build-essential
-      - run:
+  - &build-project
+    run:
           name: Build Project
           command: |
             npm install
@@ -47,6 +42,44 @@ jobs:
             cd build
             zip ../build.zip -r * .[^]*
             echo "Build Successful"
+
+jobs:
+  build:
+    executor: app-executor
+    steps:
+      - checkout
+      - *show-current-branch
+      - *restore-cache
+      - *install-dependencies
+      - *save-cache
+
+  linting:
+    executor: app-executor
+    steps:
+      - checkout
+      - *show-current-branch
+      - *restore-cache
+      - run:
+          name: Run linting
+          command: npm run lint
+
+  prettier:
+    executor: app-executor
+    steps:
+      - checkout
+      - *show-current-branch
+      - *restore-cache
+      - run:
+          name: Run prettier check
+          command: npm prettier:check
+
+  deploy-to-aws-s3:
+    executor: app-executor
+    steps:
+      - checkout
+      - *show-current-branch
+      - *install-aws-cli
+      - *build-project
       - run:
           name: Deploy to AWS S3
           command: |
@@ -62,28 +95,12 @@ jobs:
       
   deploy-to-aws-cloudfront:
     docker:
-      - image: circleci/node:12.16.3
-    working_directory: ~/repo
+    executor: app-executor
     steps:
       - checkout
-      - run:
-          name: Show current branch
-          command: echo ${CIRCLE_BRANCH}
-      - run:
-          name: Installind AWS CLI
-          working_directory: ~/repo
-          command: |
-            sudo apt-get -y -qq update
-            sudo apt-get install -y awscli
-            sudo apt-get install -y python-pip python-dev build-essential
-      - run:
-          name: Build Project
-          command: |
-            npm install
-            npm run build
-            cd build
-            zip ../build.zip -r * .[^]*
-            echo "Build Successful"
+      - *show-current-branch
+      - *install-aws-cli
+      - *build-project
       - run:
           name: Deploy to AWS Cloudfront
           command: |
@@ -102,9 +119,27 @@ workflows:
   build_and_deploy:
     jobs:
       - build
-      - deploy-to-aws-s3:
+      - linting:
           requires:
             - build
+          filters:
+            branches:
+              onbly:
+                - develop
+                - staging
+                - master
+      - prettier:
+          requires:
+            - build
+          filters:
+            branches:
+              onbly:
+                - develop
+                - staging
+                - master
+      - deploy-to-aws-s3:
+          requires:
+            - prettier
           filters:
             branches:
               only:
@@ -121,5 +156,3 @@ workflows:
                 - develop
                 - staging
                 - master
-
-      
