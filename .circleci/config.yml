@@ -94,8 +94,6 @@ jobs:
             fi
       
   deploy-to-aws-cloudfront:
-    docker:
-      - image: circleci/node:12.16.3
     executor: app-executor
     steps:
       - checkout
