@@ -124,7 +124,7 @@ workflows:
             - build
           filters:
             branches:
-              onbly:
+              only:
                 - develop
                 - staging
                 - master
@@ -133,7 +133,7 @@ workflows:
             - build
           filters:
             branches:
-              onbly:
+              only:
                 - develop
                 - staging
                 - master
